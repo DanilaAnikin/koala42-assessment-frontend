@@ -1,4 +1,4 @@
-# Koala42 Assessment - Backend
+# Koala42 Assessment - Frontend
 
 ### Description
 1) In this project I'm using NextJS and Tailwind CSS
