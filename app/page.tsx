@@ -1,35 +1,54 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { NextPage } from 'next';
 import HierarchyTable from './components/HierarchyTable';
-import exampleData from './example-data.json';
-import type { DataItem } from './types';
+import { getData } from './api/getData';
+import type { Character } from './types';
+import type { ElementType } from './types';
+import { getType } from './utils/getType';
 
-const Home: NextPage = () => {
-  // Getting the example-data.json file into a variable
-  const [treeData, setTreeData] = useState<DataItem[]>(exampleData);
+// Recursive function to delete the element and its children elements
+// (can't be same as in main branch, because this type of Characters have no "children" property, so its easier to do it like this)
+const deleteRecursive = (
+  list: any[],
+  targetId: number,
+  targetType: ElementType
+): any[] =>
+  list
+    .map((item) => {
 
-  const handleDelete = (id: string) => {
-    const deleteItem = (items: DataItem[]): DataItem[] => {
-      return items.filter(item => {
-        if (item.data.ID === id) return false;
+      const newItem = { ...item };
+      if (newItem.nemeses) {
+        newItem.nemeses = deleteRecursive(newItem.nemeses, targetId, targetType);
+      }
+      if (newItem.secrets) {
+        newItem.secrets = deleteRecursive(newItem.secrets, targetId, targetType);
+      }
 
-        Object.keys(item.children).forEach(key => {
-          item.children[key]!.records = deleteItem(item.children[key]!.records);
-        });
-        return true;
-      });
-    };
+      return newItem.id === targetId && getType(newItem) === targetType
+        ? null
+        : newItem;
+    })
+    .filter(Boolean);
 
-    setTreeData(prev => deleteItem(prev));
+
+const Page: NextPage = () => {
+  const [characters, setCharacters] = useState<Character[]>([]);
+
+  useEffect(() => {
+    getData().then(setCharacters);
+  }, []);
+
+  const handleDelete = (item: any) => {
+    setCharacters(prev => deleteRecursive(prev, item.id, getType(item)));
   };
 
   return (
     <div className="container mx-auto p-4">
-      <HierarchyTable items={treeData} onDelete={handleDelete} />
+      <HierarchyTable items={characters} onDelete={handleDelete} />
     </div>
   );
 };
 
-export default Home;
+export default Page;
